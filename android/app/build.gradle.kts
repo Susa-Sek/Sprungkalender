@@ -1,8 +1,28 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// Der eigene Signaturschlüssel, falls es einen gibt.
+//
+// android/key.properties steht in .gitignore und liegt nur auf dem Rechner
+// des Besitzers; im Workflow kommen dieselben Werte aus Secrets. Fehlt
+// beides, wird mit dem Debug-Schlüssel gebaut — sonst wäre der Bau für
+// jeden kaputt, der den Schlüssel nicht hat.
+val keyProperties = Properties().apply {
+    val datei = rootProject.file("key.properties")
+    if (datei.exists()) datei.inputStream().use { load(it) }
+}
+
+fun signaturWert(name: String, umgebung: String): String? =
+    keyProperties.getProperty(name) ?: System.getenv(umgebung)
+
+val keystoreDatei: String? = signaturWert("storeFile", "ANDROID_KEYSTORE_FILE")
+val hatEigenenSchluessel: Boolean =
+    keystoreDatei != null && rootProject.file(keystoreDatei).exists()
 
 android {
     namespace = "de.susasek.sprungkalender"
@@ -10,12 +30,18 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // Wird von flutter_local_notifications verlangt: macht neuere
+        // Java-Zeit-APIs auch auf älteren Android-Versionen verfügbar.
+        // Ohne diese Zeile bricht der Bau mit „requires core library
+        // desugaring" ab.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Der Paketname ist die Identität der Installation: Ein anderer
+        // hieße für jedes Gerät neue App, kein Termin, kein Tagebuch.
         applicationId = "de.susasek.sprungkalender"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -29,13 +55,37 @@ android {
         versionName = flutter.versionName
     }
 
-    buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+    signingConfigs {
+        if (hatEigenenSchluessel) {
+            create("release") {
+                storeFile = rootProject.file(keystoreDatei!!)
+                storePassword =
+                    signaturWert("storePassword", "ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = signaturWert("keyAlias", "ANDROID_KEY_ALIAS")
+                keyPassword =
+                    signaturWert("keyPassword", "ANDROID_KEY_PASSWORD")
+            }
         }
     }
+
+    buildTypes {
+        release {
+            // Mit eigenem Schlüssel signieren, wenn einer da ist; sonst mit
+            // dem Debug-Schlüssel, damit der Bau überall durchläuft. Ein mit
+            // dem Debug-Schlüssel signiertes APK lässt sich installieren,
+            // aber kein Update darüber legen — den erzeugt jeder Läufer neu.
+            signingConfig = if (hatEigenenSchluessel) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+        }
+    }
+}
+
+dependencies {
+    // Gehört zu isCoreLibraryDesugaringEnabled oben.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
 
 kotlin {
