@@ -50,14 +50,16 @@ class _SprungkalenderAppState extends State<SprungkalenderApp>
     if (state == AppLifecycleState.paused) _planeNeu();
   }
 
-  void _planeNeu() => unawaited(_meldungen.neuPlanen(
-        termin: _store.termin,
-        jetzt: DateTime.now(),
-        erinnerungen: _store.erinnerungen,
-        abendfrage: _store.abendfrage,
-        abendStunde: _store.abendStunde,
-        name: _store.name,
-      ));
+  void _planeNeu() => unawaited(
+    _meldungen.neuPlanen(
+      termin: _store.termin,
+      jetzt: DateTime.now(),
+      erinnerungen: _store.erinnerungen,
+      abendfrage: _store.abendfrage,
+      abendStunde: _store.abendStunde,
+      name: _store.name,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +70,11 @@ class _SprungkalenderAppState extends State<SprungkalenderApp>
         debugShowCheckedModeBanner: false,
         theme: buildAppTheme(Brightness.light),
         darkTheme: buildAppTheme(Brightness.dark),
+        // Deutsch überall, auch im Datumswähler: Monatsnamen, „Abbrechen",
+        // die Woche ab Montag und die Eingabe als TT.MM.JJJJ.
+        locale: const Locale('de', 'DE'),
+        supportedLocales: const <Locale>[Locale('de', 'DE')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         home: const AppShell(),
       ),
     );

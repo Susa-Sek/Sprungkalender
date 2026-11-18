@@ -44,63 +44,146 @@ abstract final class Motion {
 }
 
 /// Das Erscheinungsbild der App.
+///
+/// Ruhig und warm: ein gedecktes Blauviolett als Grundton, ein cremiger
+/// Hintergrund im Hellen, abgerundete Flächen statt harter Linien.
 ThemeData buildAppTheme(Brightness brightness) {
   final ColorScheme scheme = ColorScheme.fromSeed(
-    seedColor: const Color(0xFF3B6EA8),
+    seedColor: const Color(0xFF5A67C8),
     brightness: brightness,
   );
   final bool light = brightness == Brightness.light;
+  final Color hintergrund = light ? const Color(0xFFF8F6F2) : scheme.surface;
+  final Color flaeche = light ? Colors.white : scheme.surfaceContainerHigh;
+
+  final TextTheme basis =
+      (light
+              ? Typography.material2021().black
+              : Typography.material2021().white)
+          .apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface);
+  final TextTheme text = basis.copyWith(
+    headlineSmall: basis.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
+    titleLarge: basis.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+    titleMedium: basis.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+    labelLarge: basis.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+  );
+
+  // Wichtig: Size(64, 48) und NICHT Size.fromHeight(48). Letzteres heißt
+  // „unendlich breit" — in einer Row lässt sich so ein Knopf nicht anordnen,
+  // und in der Release-App fehlte er dann einfach. Genau so war der
+  // „Übernehmen"-Knopf im Termin-Blatt verschwunden. Wo ein Knopf die volle
+  // Breite haben soll, sagt die Stelle das selbst.
+  const Size knopf = Size(64, kMinTapTarget);
+  const OutlinedBorder knopfForm = RoundedRectangleBorder(
+    borderRadius: Radii.chipShape,
+  );
 
   return ThemeData(
     colorScheme: scheme,
     useMaterial3: true,
-    scaffoldBackgroundColor:
-        light ? const Color(0xFFF7F6F2) : scheme.surface,
+    textTheme: text,
+    scaffoldBackgroundColor: hintergrund,
     // Karten überall gleich: ruhige Kante statt Schattenstapel.
     cardTheme: CardThemeData(
       elevation: 0,
       margin: EdgeInsets.zero,
-      color: light ? Colors.white : scheme.surfaceContainerHigh,
+      color: flaeche,
+      clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: Radii.cardShape,
         side: BorderSide(
-          color: light
-              ? const Color(0x14000000)
-              : const Color(0x1FFFFFFF),
+          color: light ? const Color(0x0F000000) : const Color(0x1FFFFFFF),
         ),
       ),
     ),
     appBarTheme: AppBarTheme(
       centerTitle: false,
-      backgroundColor: light ? const Color(0xFFF7F6F2) : scheme.surface,
+      backgroundColor: hintergrund,
       surfaceTintColor: Colors.transparent,
       scrolledUnderElevation: 0.5,
+      titleTextStyle: text.titleLarge,
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(kMinTapTarget),
-        shape: const RoundedRectangleBorder(borderRadius: Radii.chipShape),
+        minimumSize: knopf,
+        shape: knopfForm,
+        textStyle: text.labelLarge,
+        padding: const EdgeInsets.symmetric(horizontal: Insets.xl),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(kMinTapTarget),
-        shape: const RoundedRectangleBorder(borderRadius: Radii.chipShape),
+        minimumSize: knopf,
+        shape: knopfForm,
+        textStyle: text.labelLarge,
       ),
     ),
-    listTileTheme: const ListTileThemeData(
-      minVerticalPadding: Insets.md,
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(minimumSize: knopf, shape: knopfForm),
     ),
-    dividerTheme: const DividerThemeData(space: 1, thickness: 1),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: SegmentedButton.styleFrom(
+        minimumSize: const Size(0, kMinTapTarget),
+        selectedBackgroundColor: scheme.secondaryContainer,
+        selectedForegroundColor: scheme.onSecondaryContainer,
+      ),
+    ),
+    chipTheme: ChipThemeData(
+      shape: const StadiumBorder(),
+      side: BorderSide(color: scheme.outlineVariant),
+      selectedColor: scheme.secondaryContainer,
+      showCheckmark: false,
+      labelPadding: const EdgeInsets.symmetric(horizontal: Insets.xs),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: light
+          ? scheme.surfaceContainerLow
+          : scheme.surfaceContainerHighest,
+      border: const OutlineInputBorder(
+        borderRadius: Radii.chipShape,
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: Radii.chipShape,
+        borderSide: BorderSide(color: scheme.primary, width: 2),
+      ),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: flaeche,
+      surfaceTintColor: Colors.transparent,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: flaeche,
+      surfaceTintColor: Colors.transparent,
+    ),
+    datePickerTheme: DatePickerThemeData(
+      backgroundColor: flaeche,
+      surfaceTintColor: Colors.transparent,
+      headerBackgroundColor: scheme.primaryContainer,
+      headerForegroundColor: scheme.onPrimaryContainer,
+    ),
+    listTileTheme: const ListTileThemeData(minVerticalPadding: Insets.md),
+    dividerTheme: DividerThemeData(
+      space: 1,
+      thickness: 1,
+      color: scheme.outlineVariant.withValues(alpha: 0.5),
+    ),
     progressIndicatorTheme: ProgressIndicatorThemeData(
       linearTrackColor: scheme.primaryContainer,
-      linearMinHeight: 6,
+      linearMinHeight: 8,
+      borderRadius: const BorderRadius.all(Radius.circular(Radii.bar)),
     ),
+    snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
     navigationBarTheme: NavigationBarThemeData(
       height: 68,
-      elevation: 2,
-      backgroundColor: light ? Colors.white : scheme.surfaceContainerHigh,
-      indicatorColor: scheme.primaryContainer,
+      elevation: 0,
+      backgroundColor: flaeche,
+      indicatorColor: scheme.secondaryContainer,
       labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
     ),
   );

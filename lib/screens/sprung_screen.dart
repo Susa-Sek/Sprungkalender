@@ -4,6 +4,7 @@ import '../data/spruenge.dart';
 import '../state/kind_store.dart';
 import '../state/sprung_rechner.dart';
 import '../theme/app_theme.dart';
+import '../theme/format.dart';
 
 /// Ein Sprung im Einzelnen.
 class SprungScreen extends StatelessWidget {
@@ -22,15 +23,18 @@ class SprungScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: <Widget>[
-          Text(sprung.titel,
-              style: theme.textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            sprung.titel,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: Insets.xs),
           Text(
             termin == null
                 ? 'Ab Woche ${sprung.startWoche}, etwa '
-                    '${sprung.dauerTage ~/ 7} '
-                    '${sprung.dauerTage ~/ 7 == 1 ? "Woche" : "Wochen"} lang'
+                      '${sprung.dauerTage ~/ 7} '
+                      '${sprung.dauerTage ~/ 7 == 1 ? "Woche" : "Wochen"} lang'
                 : _zeitraum(termin),
             style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
           ),
@@ -50,8 +54,7 @@ class SprungScreen extends StatelessWidget {
           const SizedBox(height: Insets.xl),
           Text(
             kModellHinweis,
-            style:
-                theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
           ),
         ],
       ),
@@ -62,19 +65,10 @@ class SprungScreen extends StatelessWidget {
   /// sich das Fenster benennen statt nur in Wochen beschreiben.
   String _zeitraum(DateTime termin) {
     final DateTime von = tagVon(termin).add(Duration(days: sprung.startTag));
-    final DateTime bis =
-        tagVon(termin).add(Duration(days: sprung.endTag - 1));
-    return 'etwa ${_datum(von)} bis ${_datum(bis)} · ab Woche '
+    final DateTime bis = tagVon(termin).add(Duration(days: sprung.endTag - 1));
+    return 'etwa ${datumLang(von)} bis ${datumLang(bis)} · ab Woche '
         '${sprung.startWoche}';
   }
-
-  static const List<String> _monate = <String>[
-    'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
-    'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
-  ];
-
-  static String _datum(DateTime d) =>
-      '${d.day}. ${_monate[d.month - 1]} ${d.year}';
 }
 
 class _Abschnitt extends StatelessWidget {
@@ -101,20 +95,38 @@ class _Abschnitt extends StatelessWidget {
           children: <Widget>[
             Row(
               children: <Widget>[
-                Icon(symbol, size: 20, color: theme.colorScheme.primary),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    symbol,
+                    size: 18,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
                 const SizedBox(width: Insets.sm),
-                Text(titel,
-                    style: theme.textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  titel,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: Insets.sm),
             Text(text, style: theme.textTheme.bodyMedium),
             if (fussnote case final String f) ...<Widget>[
               const SizedBox(height: Insets.md),
-              Text(f,
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: theme.hintColor)),
+              Text(
+                f,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.hintColor,
+                ),
+              ),
             ],
           ],
         ),

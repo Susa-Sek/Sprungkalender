@@ -4,7 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:sprungkalender/data/spruenge.dart';
 import 'package:sprungkalender/main.dart';
+import 'package:sprungkalender/screens/einstellungen_screen.dart';
 import 'package:sprungkalender/screens/heute_screen.dart';
+import 'package:sprungkalender/screens/termin_blatt.dart';
 import 'package:sprungkalender/screens/tagebuch_screen.dart';
 import 'package:sprungkalender/state/kind_store.dart';
 import 'package:sprungkalender/theme/app_theme.dart';
@@ -204,7 +206,7 @@ void main() {
           tag: '2026-02-01', stimmung: Stimmung.gut, notiz: 'Viel gelacht.'));
       await oeffne(tester, s, const TagebuchScreen());
 
-      expect(find.text('2026-02-01'), findsOneWidget);
+      expect(find.text('Sonntag, 1. Februar'), findsOneWidget);
       expect(find.text('Viel gelacht.'), findsOneWidget);
     });
   });
@@ -260,6 +262,119 @@ void main() {
         groesse: const Size(320, 6000),
         scale: 1.5,
       );
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('Das Theme', () {
+    testWidgets('Knöpfe lassen sich nebeneinander in eine Row setzen',
+        (WidgetTester tester) async {
+      // Size.fromHeight(48) als Mindestgröße heißt „unendlich breit" — so
+      // ein Knopf verschwindet in jeder Row. Das darf nicht wiederkommen.
+      await oeffne(
+        tester,
+        await store(),
+        Scaffold(
+          body: Row(
+            children: <Widget>[
+              TextButton(onPressed: () {}, child: const Text('A')),
+              const Spacer(),
+              OutlinedButton(onPressed: () {}, child: const Text('B')),
+              FilledButton(onPressed: () {}, child: const Text('C')),
+            ],
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      expect(find.text('C'), findsOneWidget);
+    });
+  });
+
+  group('Das Termin-Blatt', () {
+    // Hier war der „Übernehmen"-Knopf verschwunden: Das Theme gab allen
+    // FilledButtons eine unendliche Mindestbreite, und in einer Row lässt
+    // sich das nicht anordnen. Man konnte ein Datum wählen, aber nicht
+    // bestätigen.
+    testWidgets('öffnet ohne Layoutfehler und zeigt „Übernehmen"',
+        (WidgetTester tester) async {
+      await oeffne(
+        tester,
+        await store(termin: DateTime(2026, 1, 1)),
+        const EinstellungenScreen(),
+      );
+      await tester.tap(find.text('Errechneter Termin'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Übernehmen'), findsOneWidget);
+      expect(find.text('Termin löschen'), findsOneWidget);
+    });
+
+    testWidgets('über das Geburtsdatum: wählen, verschieben, übernehmen',
+        (WidgetTester tester) async {
+      final KindStore s = await store();
+      await oeffne(
+        tester,
+        s,
+        Scaffold(
+          body: TerminBlatt(store: s, heute: DateTime(2026, 2, 5)),
+        ),
+      );
+
+      await tester.tap(find.text('Geburtsdatum'));
+      await tester.pumpAndSettle();
+      expect(find.text('Datum wählen'), findsOneWidget);
+
+      // Ohne Datum lässt sich nichts übernehmen.
+      final Finder knopf = find.widgetWithText(FilledButton, 'Übernehmen');
+      expect(tester.widget<FilledButton>(knopf).onPressed, isNull);
+
+      // Datumswähler: der 1. Februar, dann „Auswählen".
+      await tester.tap(find.text('Datum wählen'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('1'));
+      await tester.tap(find.text('Auswählen'));
+      await tester.pumpAndSettle();
+      expect(find.text('1. Februar 2026'), findsWidgets);
+
+      // Drei Wochen zu früh.
+      for (int i = 0; i < 3; i++) {
+        await tester.tap(find.byIcon(Icons.add));
+        await tester.pump();
+      }
+      expect(find.text('3 Wochen zu früh'), findsOneWidget);
+      expect(find.text('22. Februar 2026'), findsOneWidget);
+
+      expect(tester.widget<FilledButton>(knopf).onPressed, isNotNull);
+      await tester.tap(knopf);
+      await tester.pumpAndSettle();
+      expect(s.termin, DateTime(2026, 2, 22));
+    });
+
+    testWidgets('320 px und 150 % Schrift laufen nicht über',
+        (WidgetTester tester) async {
+      final KindStore s = await store(termin: DateTime(2026, 1, 1));
+      await oeffne(
+        tester,
+        s,
+        Scaffold(
+          body: TerminBlatt(store: s, heute: DateTime(2026, 2, 5)),
+        ),
+        groesse: const Size(320, 2400),
+        scale: 1.5,
+      );
+      await tester.tap(find.text('Geburtsdatum'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('Ohne Termin führt der Knopf', () {
+    testWidgets('direkt zum Termin-Blatt', (WidgetTester tester) async {
+      await oeffne(tester, await store(), const HeuteScreen());
+      await tester.tap(find.text('Termin eintragen'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ab wann wird gezählt?'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

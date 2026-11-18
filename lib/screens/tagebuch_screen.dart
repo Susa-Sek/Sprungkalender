@@ -4,6 +4,7 @@ import '../data/spruenge.dart';
 import '../state/kind_store.dart';
 import '../state/sprung_rechner.dart';
 import '../theme/app_theme.dart';
+import '../theme/format.dart';
 
 /// Das Tagebuch — und der Grund, warum es hier das Wichtigste ist.
 ///
@@ -44,10 +45,17 @@ class _TagebuchScreenState extends State<TagebuchScreen> {
           if (frueher.isEmpty)
             _NochLeer(hatTermin: store.eingerichtet)
           else ...<Widget>[
-            Text('Was war', style: Theme.of(context).textTheme.titleSmall),
+            Padding(
+              padding: const EdgeInsets.only(left: Insets.xs),
+              child: Text(
+                'Was war',
+                style: Theme.of(context).textTheme.labelLarge
+                    ?.copyWith(color: Theme.of(context).colorScheme.primary),
+              ),
+            ),
             const SizedBox(height: Insets.sm),
             for (final TagebuchEintrag e in frueher)
-              _Zeile(eintrag: e, termin: store.termin),
+              _Zeile(eintrag: e, termin: store.termin, jahr: heute.year),
           ],
         ],
       ),
@@ -79,21 +87,35 @@ class _HeuteEintrag extends StatelessWidget {
             Row(
               children: <Widget>[
                 Expanded(
-                  child: Text('Heute',
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text('Heute', style: theme.textTheme.titleMedium),
+                      Text(
+                        datumMitWochentag(tag, bezugsJahr: tag.year),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 if (sprung != null)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.primaryContainer,
                       borderRadius: Radii.chipShape,
                     ),
-                    child: Text('Sprung ${sprung.nummer}',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onPrimaryContainer)),
+                    child: Text(
+                      'Sprung ${sprung.nummer}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -103,9 +125,9 @@ class _HeuteEintrag extends StatelessWidget {
               werte: Stimmung.values,
               gewaehlt: e.stimmung,
               label: (Stimmung s) => s.label,
-              onWahl: (Stimmung? s) => store.setzeEintrag(s == null
-                  ? e.mit(stimmungLoeschen: true)
-                  : e.mit(stimmung: s)),
+              onWahl: (Stimmung? s) => store.setzeEintrag(
+                s == null ? e.mit(stimmungLoeschen: true) : e.mit(stimmung: s),
+              ),
             ),
             const SizedBox(height: Insets.md),
             _Wahl<Schlaf>(
@@ -114,7 +136,8 @@ class _HeuteEintrag extends StatelessWidget {
               gewaehlt: e.schlaf,
               label: (Schlaf s) => s.label,
               onWahl: (Schlaf? s) => store.setzeEintrag(
-                  s == null ? e.mit(schlafLoeschen: true) : e.mit(schlaf: s)),
+                s == null ? e.mit(schlafLoeschen: true) : e.mit(schlaf: s),
+              ),
             ),
             const SizedBox(height: Insets.md),
             TextFormField(
@@ -122,8 +145,8 @@ class _HeuteEintrag extends StatelessWidget {
               initialValue: e.notiz,
               minLines: 2,
               maxLines: 4,
+              textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
-                border: OutlineInputBorder(),
                 labelText: 'Notiz',
                 hintText: 'Was war heute?',
               ),
@@ -181,10 +204,15 @@ class _Wahl<T> extends StatelessWidget {
 
 /// Eine vergangene Zeile. Lag der Tag in einem Fenster, ist sie eingefärbt.
 class _Zeile extends StatelessWidget {
-  const _Zeile({required this.eintrag, required this.termin});
+  const _Zeile({
+    required this.eintrag,
+    required this.termin,
+    required this.jahr,
+  });
 
   final TagebuchEintrag eintrag;
   final DateTime? termin;
+  final int jahr;
 
   @override
   Widget build(BuildContext context) {
@@ -207,13 +235,30 @@ class _Zeile extends StatelessWidget {
             Row(
               children: <Widget>[
                 Expanded(
-                  child: Text(eintrag.tag,
-                      style: theme.textTheme.labelLarge),
+                  child: Text(
+                    tag == null
+                        ? eintrag.tag
+                        : datumMitWochentag(tag, bezugsJahr: jahr),
+                    style: theme.textTheme.labelLarge,
+                  ),
                 ),
                 if (sprung != null)
-                  Text('Sprung ${sprung.nummer}',
-                      style: theme.textTheme.labelSmall
-                          ?.copyWith(color: theme.hintColor)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Insets.sm,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      borderRadius: Radii.chipShape,
+                    ),
+                    child: Text(
+                      'Sprung ${sprung.nummer}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ),
               ],
             ),
             if (eintrag.stimmung != null || eintrag.schlaf != null) ...<Widget>[
@@ -254,12 +299,11 @@ class _NochLeer extends StatelessWidget {
           Text(
             hatTermin
                 ? 'Noch keine Einträge. Zwei Tipps am Tag reichen — später '
-                    'weiß man nicht mehr, wie die Woche war.'
+                      'weiß man nicht mehr, wie die Woche war.'
                 : 'Noch keine Einträge. Trag den Termin ein, dann färbt das '
-                    'Tagebuch die Sprungwochen mit ein.',
+                      'Tagebuch die Sprungwochen mit ein.',
             textAlign: TextAlign.center,
-            style:
-                theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
+            style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
           ),
         ],
       ),
