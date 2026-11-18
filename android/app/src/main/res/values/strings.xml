@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Der Anzeigename unter dem Symbol. Er steht hier und nicht im
+         Manifest: So übersteht er jede Werkzeugkette, und der Paketname
+         bleibt davon unberührt. -->
+    <string name="app_name">Sprungkalender</string>
+</resources>
